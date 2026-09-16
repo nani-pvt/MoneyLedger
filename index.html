@@ -695,19 +695,24 @@
                 timestamp: newTx.date + ' ' + newTx.time
             });
             renderDashboard();
+            
+            // INSTANT UI RESPONSE: Close modal immediately before network request
+            closeModal();
 
             try {
                 if (APPS_SCRIPT_URL) {
-                    await fetch(APPS_SCRIPT_URL, {
+                    // Added mode: 'no-cors' to bypass strict browser blocking on Google Sheets POST requests
+                    fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(newTx)
-                    });
-                    setTimeout(fetchSheetData, 1500); // Re-fetch from sheets to confirm
+                    }).then(() => {
+                        setTimeout(fetchSheetData, 1500); // Re-fetch from sheets to confirm
+                    }).catch(err => console.error("Silent background error:", err));
                 } else {
                     alert("WARNING: No APPS_SCRIPT_URL found. Transaction not saved to sheets.");
                 }
-                closeModal();
             } catch (error) {
                 console.error("Error adding transaction:", error);
             }
@@ -721,16 +726,19 @@
 
             try { 
                 if (APPS_SCRIPT_URL) {
-                    await fetch(APPS_SCRIPT_URL, {
+                    // Added mode: 'no-cors' here as well
+                    fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({
                             action: 'update',
                             id: txId,
                             status: newStatus
                         })
-                    });
-                    setTimeout(fetchSheetData, 1500); // Verify write against Google Sheets
+                    }).then(() => {
+                        setTimeout(fetchSheetData, 1500); // Verify write against Google Sheets
+                    }).catch(err => console.error("Silent background error:", err));
                 }
             } 
             catch (error) { console.error("Error updating:", error); }
