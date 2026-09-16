@@ -335,7 +335,7 @@
         let isSheetLoaded = false;
 
         // REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgNOeflGTWQcvhKRkwmkj7i05ONSxeQiIoIAv5p4DUINoce41dNwrEeNo7qRE0zG0/exec'; 
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzxFiiLSzlloul_QFUaPgbHMk03TEzEOY0TVFy03-fbUEAnibxJZzDXVA9PS4Z4vPY/exec'; 
 
         // Auth init
         async function initAuth() {
@@ -432,15 +432,17 @@
             }
             */
             
-            startRealtimeSync();
             fetchSheetData(); // Fetch sheets data on load
+            setInterval(fetchSheetData, 5000); // Polling every 5 seconds for real-time syncing!
         }
         
         window.fetchSheetData = async () => {
             if (!APPS_SCRIPT_URL) return;
             try {
-                document.getElementById('balance-status').innerText = "Syncing with Sheets...";
-                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                const isSyncingStatus = document.getElementById('balance-status').innerText === "Syncing with Sheets...";
+                if (!isSyncingStatus) {
+                   document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-brand-400 animate-pulse shadow-[0_0_8px_#60a5fa]"; 
+                }
                 
                 const response = await fetch(APPS_SCRIPT_URL);
                 const data = await response.json();
@@ -448,6 +450,18 @@
                 if (Array.isArray(data)) {
                     sheetTransactions = data;
                     isSheetLoaded = true;
+                    
+                    // Format directly from Google Sheets Data
+                    allTransactions = sheetTransactions.map(t => ({
+                        id: t.ID || t.id || 'old_' + Math.random(),
+                        sender: t.Sender || t.sender,
+                        receiver: t.Receiver || t.receiver,
+                        amount: parseFloat(t.Amount || t.amount),
+                        note: t.Note || t.note,
+                        status: t.Status || t.status || 'approved', // Legacy rows default to approved
+                        createdBy: t.CreatedBy || t.createdBy,
+                        timestamp: (t.Date || t.date) + ' ' + (t.Time || t.time)
+                    })).reverse(); // Reverse so newest appear first
                 }
                 renderDashboard();
                 if (document.getElementById('statements-modal').classList.contains('open')) {
@@ -460,41 +474,11 @@
             }
         };
 
-        function startRealtimeSync() {
-            // Check for db before using
-            if (!db || !currentUser) return;
-
-            const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
-            const q = query(txCollection);
-
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                allTransactions = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                allTransactions.sort((a, b) => b.timestamp - a.timestamp);
-                renderDashboard();
-            });
-        }
-
         function renderDashboard() {
             const friend = USERS[currentUser].friend;
             let myBalance = 0; 
             
-            let approvedTx = [];
-            
-            // Read directly from Google Sheets if loaded
-            if (isSheetLoaded && APPS_SCRIPT_URL) {
-                approvedTx = sheetTransactions.map(t => ({
-                    sender: t.Sender || t.sender,
-                    receiver: t.Receiver || t.receiver,
-                    amount: parseFloat(t.Amount || t.amount),
-                    note: t.Note || t.note,
-                    timestamp: (t.Date || t.date) + ' ' + (t.Time || t.time)
-                }));
-            } else {
-                approvedTx = allTransactions.filter(t => t.status === 'approved');
-            }
+            const approvedTx = allTransactions.filter(t => t.status === 'approved');
 
             approvedTx.forEach(tx => {
                 if (tx.sender === currentUser) myBalance += tx.amount;
@@ -585,20 +569,8 @@
             // Render History
             const historyList = document.getElementById('history-list');
             
-            let history = [];
-            // Use sheets history as source of truth if loaded
-            if (isSheetLoaded && APPS_SCRIPT_URL) {
-                history = sheetTransactions.map(t => ({
-                    sender: t.Sender || t.sender,
-                    receiver: t.Receiver || t.receiver,
-                    amount: parseFloat(t.Amount || t.amount),
-                    note: t.Note || t.note,
-                    timestamp: (t.Date || t.date) + ' ' + (t.Time || t.time),
-                    status: 'approved' 
-                })).reverse(); // Show latest first
-            } else {
-                history = allTransactions.filter(t => t.status !== 'pending');
-            }
+            // Filter out pending, show approved/rejected
+            const history = allTransactions.filter(t => t.status !== 'pending');
             
             historyList.innerHTML = '';
             if (history.length === 0) {
@@ -697,38 +669,43 @@
             }
 
             const friend = USERS[currentUser].friend;
-            const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
 
             // Crucial Logic for 'Sent' vs 'Received'
             const isSender = currentTxMode === 'sent';
             const txSender = isSender ? currentUser : friend;
             const txReceiver = isSender ? friend : currentUser;
+            const txId = 'tx_' + Date.now() + Math.floor(Math.random()*1000);
+
+            const newTx = {
+                action: 'create',
+                id: txId,
+                date: new Date().toLocaleDateString('en-IN'),
+                time: new Date().toLocaleTimeString('en-IN'),
+                sender: txSender,
+                receiver: txReceiver,
+                amount: amount,
+                note: note,
+                status: 'pending',
+                createdBy: currentUser
+            };
+
+            // Optimistically update UI so it feels instant
+            allTransactions.unshift({
+                ...newTx,
+                timestamp: newTx.date + ' ' + newTx.time
+            });
+            renderDashboard();
 
             try {
-                if (db) {
-                    const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
-                    await addDoc(txCollection, {
-                        sender: txSender,
-                        receiver: txReceiver,
-                        amount: amount,
-                        note: note,
-                        status: 'pending',
-                        timestamp: Date.now(),
-                        createdBy: currentUser // Tracks who made the request
+                if (APPS_SCRIPT_URL) {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(newTx)
                     });
+                    setTimeout(fetchSheetData, 1500); // Re-fetch from sheets to confirm
                 } else {
-                    // Standalone Mode: Fake the pending transaction locally so UI still updates
-                    allTransactions.push({
-                        id: 'local_' + Date.now(),
-                        sender: txSender,
-                        receiver: txReceiver,
-                        amount: amount,
-                        note: note,
-                        status: 'pending',
-                        timestamp: Date.now(),
-                        createdBy: currentUser
-                    });
-                    renderDashboard();
+                    alert("WARNING: No APPS_SCRIPT_URL found. Transaction not saved to sheets.");
                 }
                 closeModal();
             } catch (error) {
@@ -737,38 +714,23 @@
         };
 
         window.handleApproval = async (txId, newStatus) => {
+            // Optimistic UI Update so it feels instant
+            const tx = allTransactions.find(t => t.id === txId);
+            if (tx) tx.status = newStatus;
+            renderDashboard();
+
             try { 
-                if (db) {
-                    const txRef = doc(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions', txId);
-                    await updateDoc(txRef, { status: newStatus }); 
-                } else {
-                    // Standalone Mode update
-                    const tx = allTransactions.find(t => t.id === txId);
-                    if (tx) tx.status = newStatus;
-                    renderDashboard();
-                }
-                
-                // Background Sync to Google Sheets via Apps Script
-                if (newStatus === 'approved' && APPS_SCRIPT_URL) {
-                    const tx = allTransactions.find(t => t.id === txId);
-                    if (tx) {
-                        fetch(APPS_SCRIPT_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                date: new Date().toLocaleDateString('en-IN'),
-                                time: new Date().toLocaleTimeString('en-IN'),
-                                sender: tx.sender,
-                                receiver: tx.receiver,
-                                amount: tx.amount,
-                                note: tx.note
-                            })
-                        }).then(() => {
-                            // After approving and writing to sheet, fetch updated statements
-                            setTimeout(fetchSheetData, 2000);
-                        }).catch(e => console.log('Sheet sync skipped', e));
-                    }
+                if (APPS_SCRIPT_URL) {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'update',
+                            id: txId,
+                            status: newStatus
+                        })
+                    });
+                    setTimeout(fetchSheetData, 1500); // Verify write against Google Sheets
                 }
             } 
             catch (error) { console.error("Error updating:", error); }
@@ -796,34 +758,30 @@
                 list.innerHTML = `<div class="text-center py-10 text-brand-400 text-sm font-medium animate-pulse">Loading securely from Google Sheets...</div>`;
                 return;
             }
-            if (sheetTransactions.length === 0) {
+            if (allTransactions.length === 0) {
                 list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm font-medium">No statements found in the sheet yet.</div>`;
                 return;
             }
 
-            // Reverse to show latest first
-            const reversed = [...sheetTransactions].reverse();
-            
-            list.innerHTML = reversed.map(t => {
-                const isSender = (t.Sender || t.sender) === currentUser;
-                const date = t.Date || t.date;
-                const time = t.Time || t.time;
-                const amount = t.Amount || t.amount;
-                const note = t.Note || t.note;
-                const otherPerson = isSender ? (t.Receiver || t.receiver) : (t.Sender || t.sender);
-                
+            list.innerHTML = allTransactions.map(t => {
+                const isSender = t.sender === currentUser;
+                const otherPerson = isSender ? t.receiver : t.sender;
                 const color = isSender ? 'text-emerald-400' : 'text-brand-400';
                 const sign = isSender ? '-' : '+';
                 
+                let badge = '';
+                if (t.status === 'pending') badge = '<span class="ml-2 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30">Pending</span>';
+                if (t.status === 'rejected') badge = '<span class="ml-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider border border-red-500/30">Rejected</span>';
+
                 return `
-                    <div class="glass rounded-xl p-4 border border-slate-700/50 flex justify-between items-center mb-3">
+                    <div class="glass rounded-xl p-4 border border-slate-700/50 flex justify-between items-center mb-3 opacity-${t.status === 'rejected' ? '50' : '100'}">
                         <div>
-                            <p class="text-sm font-bold text-slate-200">${isSender ? 'Sent to' : 'Received from'} ${otherPerson}</p>
-                            <p class="text-[11px] text-slate-400 mt-1">${date} • ${time}</p>
-                            <p class="text-[12px] text-slate-300 mt-1.5 font-medium bg-slate-800/80 inline-block px-2.5 py-1 rounded-md border border-white/5">${note}</p>
+                            <p class="text-sm font-bold text-slate-200">${isSender ? 'Sent to' : 'Received from'} ${otherPerson} ${badge}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${t.timestamp}</p>
+                            <p class="text-[12px] text-slate-300 mt-1.5 font-medium bg-slate-800/80 inline-block px-2.5 py-1 rounded-md border border-white/5">${t.note}</p>
                         </div>
                         <div class="text-right">
-                            <p class="font-black text-xl ${color}">${sign}₹${amount}</p>
+                            <p class="font-black text-xl ${t.status === 'rejected' ? 'text-slate-500 line-through' : color}">${sign}₹${t.amount}</p>
                         </div>
                     </div>
                 `;
@@ -835,12 +793,17 @@
 
     <!-- 
     ========================================================
-    UPDATED GOOGLE APPS SCRIPT BACKEND INSTRUCTIONS (Code.gs)
+    🔥 CRITICAL: NEW GOOGLE APPS SCRIPT INSTRUCTIONS 🔥
     ========================================================
+    Because the entire system (Pending Approvals, History, Balance) 
+    is now 100% managed by Google Sheets, you MUST update your Sheet.
+
     1. Open your Google Sheet.
-    2. Add exact headers in Row 1: Date | Time | Sender | Receiver | Amount | Note
+    2. Make sure you have EXACTLY these 9 Headers in Row 1 (Columns A to I):
+       Date | Time | Sender | Receiver | Amount | Note | Status | CreatedBy | ID
+
     3. Go to Extensions > Apps Script.
-    4. Delete all existing code and paste the code below (it now includes doGet to READ data):
+    4. Delete all existing code and paste this NEW code:
 
     function doGet(e) {
       try {
@@ -867,18 +830,28 @@
       try {
         var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
         var data = JSON.parse(e.postData.contents);
-        sheet.appendRow([data.date, data.time, data.sender, data.receiver, data.amount, data.note]);
-        return ContentService.createTextOutput("Success");
+        
+        if (data.action === 'update') {
+          var rows = sheet.getDataRange().getValues();
+          for (var i = 1; i < rows.length; i++) {
+            if (rows[i][8] == data.id) { 
+              sheet.getRange(i + 1, 7).setValue(data.status); 
+              return ContentService.createTextOutput("Update Success");
+            }
+          }
+          return ContentService.createTextOutput("ID not found");
+        } else {
+          sheet.appendRow([data.date, data.time, data.sender, data.receiver, data.amount, data.note, data.status, data.createdBy, data.id]);
+          return ContentService.createTextOutput("Create Success");
+        }
       } catch(error) {
-        return ContentService.createTextOutput("Error");
+        return ContentService.createTextOutput("Error: " + error.message);
       }
     }
 
-    5. Click "Deploy" > "New deployment".
-    6. Select type: "Web App".
-    7. Execute as: "Me", Who has access: "Anyone".
-    8. Click Deploy, copy the new "Web App URL".
-    9. Paste the URL into the 'APPS_SCRIPT_URL' variable in the Javascript code above.
+    5. Click "Deploy" > "New deployment" (or "Manage deployments" > Edit > New Version).
+    6. Ensure: Execute as "Me", Access to "Anyone".
+    7. Update the APPS_SCRIPT_URL variable in the code above with the new URL!
     ========================================================
     -->
 </body>
