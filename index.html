@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Ledger</title>
+    
+    <!-- 
+    ========================================
+    FAVICON SLOTS (Uncomment and replace URLs when ready)
+    ========================================
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb' },
+                        surface: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh; /* Mobile viewport bug fix */
+            margin: 0;
+            overflow: hidden; /* Prevent body scrolling */
+        }
+        
+        /* Responsive App Container - Now fully spans the screen */
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            position: relative;
+            background-color: #0f172a;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Classes */
+        .glass { 
+            background: rgba(30, 41, 59, 0.45); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+        }
+        .glass-heavy {
+            background: rgba(15, 23, 42, 0.75); 
+            backdrop-filter: blur(24px); 
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+
+        /* Ambient Background Orbs */
+        .orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: 0; opacity: 0.4; }
+        .orb-1 { top: -10%; left: -20%; width: 300px; height: 300px; background: #3b82f6; animation: float 10s infinite ease-in-out alternate; }
+        .orb-2 { bottom: 10%; right: -20%; width: 250px; height: 250px; background: #10b981; animation: float 12s infinite ease-in-out alternate-reverse; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 50px) scale(1.1); }
+        }
+
+        /* UI Animations */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Bottom Sheet / Modal */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 50;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        .bottom-sheet.open { transform: translateY(0); }
+        
+        @media (min-width: 768px) {
+            .bottom-sheet {
+                top: 50%; left: 50%; bottom: auto; right: auto;
+                width: 400px;
+                transform: translate(-50%, -40%) scale(0.95);
+                opacity: 0;
+                border-radius: 28px;
+                padding-bottom: 24px;
+                pointer-events: none;
+                transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            }
+            .bottom-sheet.open {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                pointer-events: all;
+            }
+        }
+        
+        .modal-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+        }
+        .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { width: 0px; }
+        
+        /* Content z-index fix to sit above orbs */
+        .content-layer { position: relative; z-index: 10; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container flex flex-col">
+        <!-- Ambient Orbs -->
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <div id="loginScreen" class="content-layer flex-1 flex flex-col justify-center p-6 md:p-12 fade-in max-w-md mx-auto w-full">
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/30 transform rotate-3">
+                    <svg class="w-10 h-10 text-white -rotate-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2">Money Ledger</h1>
+                <p class="text-slate-400 text-sm font-medium">Secure syncing for Vivek & Bharath</p>
+            </div>
+
+            <div class="glass rounded-3xl p-6 shadow-2xl">
+                <label class="block text-sm font-semibold text-slate-300 mb-3 ml-1">Who are you?</label>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="selectUser('Vivek')" id="btn-Vivek" class="py-4 px-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold hover:bg-slate-700/50 transition-all flex items-center justify-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 hidden shadow-[0_0_8px_#34d399]" id="dot-Vivek"></div> Vivek
+                    </button>
+                    <button onclick="selectUser('Bharath')" id="btn-Bharath" class="py-4 px-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold hover:bg-slate-700/50 transition-all flex items-center justify-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 hidden shadow-[0_0_8px_#34d399]" id="dot-Bharath"></div> Bharath
+                    </button>
+                </div>
+                
+                <div id="password-section" class="hidden fade-in space-y-4">
+                    <div>
+                        <input type="password" id="password" inputmode="numeric" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl px-5 py-4 text-white text-center tracking-widest text-xl focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-600 placeholder:tracking-normal" placeholder="Passcode">
+                    </div>
+                    <button onclick="handleLogin()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-brand-500/25 active:scale-95">
+                        Unlock Ledger
+                    </button>
+                    <p id="login-error" class="text-red-400 text-sm text-center font-medium hidden">Incorrect passcode.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="appScreen" class="content-layer hidden flex-col h-full fade-in">
+            
+            <!-- Header -->
+            <header class="flex justify-between items-center p-6 pt-8 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-lg border border-white/10 overflow-hidden shrink-0" id="user-avatar">V</div>
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Welcome back</p>
+                        <h2 class="text-lg font-extrabold text-white leading-tight" id="user-name">Vivek</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="handleLogout()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto px-6 md:px-12 pb-32 max-w-3xl mx-auto w-full">
+                
+                <!-- Main Balance Card -->
+                <div class="glass rounded-3xl p-6 mb-8 text-center shadow-2xl relative overflow-hidden border-t border-white/10">
+                    <p class="text-xs text-slate-300 mb-1 uppercase tracking-widest font-bold">Net Balance</p>
+                    <div id="balance-amount" class="text-5xl font-black tracking-tighter mb-2 my-2 text-white transition-colors duration-300">₹0</div>
+                    
+                    <div class="inline-flex items-center justify-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-700/50">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <p id="balance-status" class="text-xs font-bold text-slate-300 tracking-wide">Calculating...</p>
+                    </div>
+
+                    <button onclick="openStatements()" class="mt-5 w-full py-3 rounded-xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold text-sm hover:bg-slate-700/50 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        View Full Statements (Sheets)
+                    </button>
+                </div>
+
+                <!-- Pending Approvals Section -->
+                <div id="pending-section" class="mb-8 hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-white tracking-wide">Action Required</h3>
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                        </span>
+                    </div>
+                    <div id="pending-list" class="space-y-3">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- History Section -->
+                <div>
+                    <h3 class="text-sm font-bold text-white tracking-wide mb-4">Recent Activity</h3>
+                    <div id="history-list" class="space-y-3 pb-8">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Action Bar -->
+            <div class="absolute bottom-0 left-0 right-0 w-full p-4 glass-heavy z-20 rounded-t-[32px] md:rounded-none md:border-t md:border-white/10">
+                <div class="flex gap-4 max-w-3xl mx-auto">
+                    <button onclick="openModal('sent')" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] flex flex-col items-center justify-center gap-1 active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                        <span class="text-[11px] uppercase tracking-wider">I Sent</span>
+                    </button>
+                    <button onclick="openModal('received')" class="flex-1 bg-brand-500 hover:bg-brand-400 text-white font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] flex flex-col items-center justify-center gap-1 active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        <span class="text-[11px] uppercase tracking-wider">I Received</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-backdrop" class="modal-backdrop" onclick="closeModal(); closeStatements();"></div>
+        
+        <div id="tx-modal" class="bottom-sheet glass-heavy p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <div class="w-12 h-1.5 bg-slate-600 rounded-full mx-auto mb-6 opacity-50"></div>
+            
+            <div class="flex items-center justify-between mb-6">
+                <h2 id="modal-title" class="text-2xl font-black text-white tracking-tight">Log Transaction</h2>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-2xl text-slate-400 font-medium">₹</span>
+                        <input type="number" id="tx-amount" inputmode="decimal" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl pl-12 pr-5 py-4 text-white text-2xl font-bold focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/50 transition-all placeholder:text-slate-600" placeholder="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Note / Description</label>
+                    <input type="text" id="tx-note" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/50 transition-all placeholder:text-slate-600" placeholder="e.g. Movie tickets, Dinner...">
+                </div>
+            </div>
+            <div class="mt-8 mb-4">
+                <button id="modal-submit" onclick="submitTransaction()" class="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)] active:scale-95 transition-all">
+                    Submit
+                </button>
+            </div>
+        </div>
+
+        <!-- Statements Modal -->
+        <div id="statements-modal" class="bottom-sheet glass-heavy p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[85vh] flex flex-col">
+            <div class="w-12 h-1.5 bg-slate-600 rounded-full mx-auto mb-6 opacity-50 shrink-0"></div>
+            
+            <div class="flex items-center justify-between mb-4 shrink-0">
+                <h2 class="text-2xl font-black text-white tracking-tight">Ledger Statements</h2>
+                <button onclick="closeStatements()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto pr-2 space-y-3 pb-8" id="statements-list">
+                <!-- Injected via JS -->
+                <div class="text-center text-slate-400 mt-10 text-sm font-medium">Loading statements from Google Sheets...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-vibha-app';
+        
+        let app = null, db = null, auth = null;
+        try {
+            let firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            
+            // Prevent crashing if no valid config exists (like when running as a local standalone .html file)
+            if (firebaseConfig && firebaseConfig.apiKey) {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+            } else {
+                console.warn("Running in Standalone Mode. Cloud database disabled. Buttons and Google Sheets sync will still function.");
+            }
+        } catch (e) { 
+            console.error("Backend setup skipped:", e); 
+        }
+
+        // Security / Users Map (As requested)
+        const USERS = {
+            'Vivek': { pass: '101204', friend: 'Bharath' },
+            'Bharath': { pass: '798989', friend: 'Vivek' }
+        };
+        
+        let selectedLoginUser = null;
+        let currentUser = null;
+        let unsubscribe = null;
+        let allTransactions = [];
+        let sheetTransactions = [];
+        let isSheetLoaded = false;
+
+        // REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgNOeflGTWQcvhKRkwmkj7i05ONSxeQiIoIAv5p4DUINoce41dNwrEeNo7qRE0zG0/exec'; 
+
+        // Auth init
+        async function initAuth() {
+            try {
+                if (auth) {
+                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (token) await signInWithCustomToken(auth, token);
+                    else await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+            }
+            
+            // Allow login UI to work even without backend auth
+            const savedUser = localStorage.getItem('vibha_user');
+            if (savedUser && USERS[savedUser]) {
+                currentUser = savedUser;
+                showAppScreen();
+            }
+        }
+
+        window.selectUser = (name) => {
+            selectedLoginUser = name;
+            
+            document.getElementById('btn-Vivek').classList.remove('border-brand-500', 'bg-brand-900/50');
+            document.getElementById('btn-Bharath').classList.remove('border-brand-500', 'bg-brand-900/50');
+            document.getElementById('dot-Vivek').classList.add('hidden');
+            document.getElementById('dot-Bharath').classList.add('hidden');
+            
+            document.getElementById(`btn-${name}`).classList.add('border-brand-500', 'bg-brand-900/50');
+            document.getElementById(`dot-${name}`).classList.remove('hidden');
+            
+            const pwdSection = document.getElementById('password-section');
+            pwdSection.classList.remove('hidden');
+            document.getElementById('password').focus();
+            document.getElementById('login-error').classList.add('hidden');
+        };
+
+        window.handleLogin = () => {
+            const pwd = document.getElementById('password').value;
+            if (selectedLoginUser && USERS[selectedLoginUser].pass === pwd) {
+                currentUser = selectedLoginUser;
+                localStorage.setItem('vibha_user', currentUser);
+                document.getElementById('password').value = '';
+                showAppScreen();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        };
+
+        window.handleLogout = () => {
+            currentUser = null;
+            localStorage.removeItem('vibha_user');
+            if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+            
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('flex');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('password-section').classList.add('hidden');
+            
+            selectedLoginUser = null;
+            document.getElementById('btn-Vivek').classList.remove('border-brand-500', 'bg-brand-900/50');
+            document.getElementById('btn-Bharath').classList.remove('border-brand-500', 'bg-brand-900/50');
+            document.getElementById('dot-Vivek').classList.add('hidden');
+            document.getElementById('dot-Bharath').classList.add('hidden');
+        };
+
+        function showAppScreen() {
+            // Removed strict auth check so it works locally
+            if (auth && !auth.currentUser) console.warn("No cloud auth, proceeding in local mode.");
+            
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('flex');
+            
+            document.getElementById('user-name').innerText = currentUser;
+            document.getElementById('user-avatar').innerHTML = currentUser.charAt(0);
+            
+            /*
+            ========================================================================
+            PROFILE PHOTO LOGIC (Vivek & Bharath)
+            To use real profile photos instead of the first letter of your name:
+            1. Delete the "/*" on the line below and the ending comment at the bottom.
+            2. Paste your image links inside the quotes for Vivek and Bharath.
+            ========================================================================
+            */
+            /*
+            const profilePhotos = {
+                'Vivek': 'https://example.com/vivek-photo.jpg',     // <--- PASTE VIVEK'S PHOTO URL HERE
+                'Bharath': 'https://example.com/bharath-photo.jpg'  // <--- PASTE BHARATH'S PHOTO URL HERE
+            };
+            if (profilePhotos[currentUser]) {
+                document.getElementById('user-avatar').innerHTML = `<img src="${profilePhotos[currentUser]}" class="w-full h-full rounded-full object-cover" alt="Profile">`;
+            }
+            */
+            
+            startRealtimeSync();
+            fetchSheetData(); // Fetch sheets data on load
+        }
+        
+        window.fetchSheetData = async () => {
+            if (!APPS_SCRIPT_URL) return;
+            try {
+                document.getElementById('balance-status').innerText = "Syncing with Sheets...";
+                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                
+                const response = await fetch(APPS_SCRIPT_URL);
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    sheetTransactions = data;
+                    isSheetLoaded = true;
+                }
+                renderDashboard();
+                if (document.getElementById('statements-modal').classList.contains('open')) {
+                    renderStatements();
+                }
+            } catch (e) {
+                console.error("Error fetching sheets:", e);
+                document.getElementById('balance-status').innerText = "Sheet Sync Failed";
+                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-red-400 shadow-[0_0_8px_#f87171]";
+            }
+        };
+
+        function startRealtimeSync() {
+            // Check for db before using
+            if (!db || !currentUser) return;
+
+            const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
+            const q = query(txCollection);
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                allTransactions = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                allTransactions.sort((a, b) => b.timestamp - a.timestamp);
+                renderDashboard();
+            });
+        }
+
+        function renderDashboard() {
+            const friend = USERS[currentUser].friend;
+            let myBalance = 0; 
+            
+            let approvedTx = [];
+            
+            // Read directly from Google Sheets if loaded
+            if (isSheetLoaded && APPS_SCRIPT_URL) {
+                approvedTx = sheetTransactions.map(t => ({
+                    sender: t.Sender || t.sender,
+                    receiver: t.Receiver || t.receiver,
+                    amount: parseFloat(t.Amount || t.amount),
+                    note: t.Note || t.note,
+                    timestamp: (t.Date || t.date) + ' ' + (t.Time || t.time)
+                }));
+            } else {
+                approvedTx = allTransactions.filter(t => t.status === 'approved');
+            }
+
+            approvedTx.forEach(tx => {
+                if (tx.sender === currentUser) myBalance += tx.amount;
+                else if (tx.sender === friend) myBalance -= tx.amount;
+            });
+
+            // Update Balance UI
+            const balEl = document.getElementById('balance-amount');
+            const statusEl = document.getElementById('balance-status');
+            const statusDot = document.getElementById('status-dot');
+
+            if (myBalance === 0) {
+                balEl.innerText = "₹0";
+                balEl.className = "text-5xl font-black tracking-tighter mb-2 my-2 text-white";
+                statusEl.innerText = "All settled up! 🎉";
+                statusDot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+            } else if (myBalance > 0) {
+                balEl.innerText = `₹${myBalance}`;
+                balEl.className = "text-5xl font-black tracking-tighter mb-2 my-2 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]";
+                statusEl.innerText = `${friend} owes you`;
+                statusDot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+            } else {
+                balEl.innerText = `₹${Math.abs(myBalance)}`;
+                balEl.className = "text-5xl font-black tracking-tighter mb-2 my-2 text-red-400 drop-shadow-[0_0_15px_rgba(248,113,113,0.3)]";
+                statusEl.innerText = `You owe ${friend}`;
+                statusDot.className = "w-2 h-2 rounded-full bg-red-400 shadow-[0_0_8px_#f87171]";
+            }
+
+            // Render Pending Sections
+            const pendingList = document.getElementById('pending-list');
+            const pendingSection = document.getElementById('pending-section');
+            
+            const myPendingActions = allTransactions.filter(t => t.status === 'pending' && t.createdBy !== currentUser);
+            const waitingOnFriend = allTransactions.filter(t => t.status === 'pending' && t.createdBy === currentUser);
+
+            pendingList.innerHTML = '';
+            
+            if (myPendingActions.length > 0 || waitingOnFriend.length > 0) {
+                pendingSection.classList.remove('hidden');
+                
+                myPendingActions.forEach(tx => {
+                    const iCreated = false;
+                    let actionText = tx.sender === currentUser 
+                        ? `<span class="text-white font-black">${tx.createdBy}</span> requested <span class="text-white font-black">₹${tx.amount}</span> from you`
+                        : `<span class="text-white font-black">${tx.sender}</span> sent you <span class="text-white font-black">₹${tx.amount}</span>`;
+
+                    pendingList.innerHTML += `
+                        <div class="glass-heavy rounded-2xl p-5 border-l-4 border-l-amber-400 shadow-lg relative overflow-hidden">
+                            <div class="mb-4">
+                                <p class="text-[15px] font-medium text-slate-300 leading-snug">${actionText}</p>
+                                <p class="text-sm text-slate-400 mt-1.5 flex items-center gap-1.5 font-medium">
+                                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
+                                    ${tx.note}
+                                </p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="handleApproval('${tx.id}', 'rejected')" class="flex-1 py-3 rounded-xl bg-slate-800/80 text-red-400 text-sm font-bold active:scale-95 transition-transform">Reject</button>
+                                <button onclick="handleApproval('${tx.id}', 'approved')" class="flex-1 py-3 rounded-xl bg-emerald-500 text-slate-950 text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] active:scale-95 transition-transform">Approve</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                waitingOnFriend.forEach(tx => {
+                    let waitingText = tx.sender === currentUser 
+                        ? `You sent <span class="text-white font-bold">₹${tx.amount}</span> to ${tx.receiver}`
+                        : `You received <span class="text-white font-bold">₹${tx.amount}</span> from ${tx.sender}`;
+
+                    pendingList.innerHTML += `
+                        <div class="glass rounded-2xl p-4 flex items-center justify-between opacity-75">
+                            <div>
+                                <p class="text-sm text-slate-300">${waitingText}</p>
+                                <p class="text-xs text-slate-500 mt-1 font-medium">${tx.note}</p>
+                            </div>
+                            <div class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-center shrink-0">
+                                <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Waiting</span>
+                                <div class="w-full h-1 bg-slate-600 rounded-full mt-1 overflow-hidden">
+                                    <div class="h-full bg-amber-500 w-full animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                pendingSection.classList.add('hidden');
+            }
+
+            // Render History
+            const historyList = document.getElementById('history-list');
+            
+            let history = [];
+            // Use sheets history as source of truth if loaded
+            if (isSheetLoaded && APPS_SCRIPT_URL) {
+                history = sheetTransactions.map(t => ({
+                    sender: t.Sender || t.sender,
+                    receiver: t.Receiver || t.receiver,
+                    amount: parseFloat(t.Amount || t.amount),
+                    note: t.Note || t.note,
+                    timestamp: (t.Date || t.date) + ' ' + (t.Time || t.time),
+                    status: 'approved' 
+                })).reverse(); // Show latest first
+            } else {
+                history = allTransactions.filter(t => t.status !== 'pending');
+            }
+            
+            historyList.innerHTML = '';
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-10 glass rounded-2xl border-dashed border border-white/10">
+                        <div class="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <p class="text-sm font-medium text-slate-400">No past activity</p>
+                    </div>`;
+            } else {
+                history.forEach(tx => {
+                    const isSender = tx.sender === currentUser;
+                    const isRejected = tx.status === 'rejected';
+                    
+                    const iconSVG = isRejected 
+                        ? `<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`
+                        : (isSender 
+                            ? `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>`
+                            : `<svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>`);
+                            
+                    let iconBg = isRejected ? 'bg-slate-800' : (isSender ? 'bg-emerald-500/10' : 'bg-brand-500/10');
+                    const colorClass = isRejected ? 'text-slate-500 line-through' : (isSender ? 'text-emerald-400' : 'text-slate-100');
+                    const badge = isRejected ? '<span class="text-[9px] uppercase font-bold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded ml-2">Rejected</span>' : '';
+                    
+                    let dateStr = tx.timestamp;
+                    if (typeof tx.timestamp === 'number') {
+                        dateStr = new Date(tx.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                    }
+
+                    historyList.innerHTML += `
+                        <div class="glass rounded-2xl p-4 flex justify-between items-center transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+                                    ${iconSVG}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold ${isRejected ? 'text-slate-500' : 'text-slate-200'}">
+                                        ${isSender ? `To ${tx.receiver}` : `From ${tx.sender}`} ${badge}
+                                    </p>
+                                    <p class="text-[11px] font-medium text-slate-500 mt-0.5">${dateStr} • ${tx.note}</p>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 ml-2">
+                                <p class="font-black text-lg ${colorClass}">₹${tx.amount}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        let currentTxMode = 'sent';
+
+        window.openModal = (mode = 'sent') => {
+            currentTxMode = mode;
+            document.getElementById('modal-title').innerText = mode === 'sent' ? 'I Sent Money' : 'I Received Money';
+            
+            const submitBtn = document.getElementById('modal-submit');
+            submitBtn.innerText = mode === 'sent' ? 'Send Approval Request' : 'Request Verification';
+            
+            if (mode === 'sent') {
+                submitBtn.className = "w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all";
+            } else {
+                submitBtn.className = "w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)] active:scale-95 transition-all";
+            }
+
+            document.getElementById('tx-amount').value = '';
+            document.getElementById('tx-note').value = '';
+            
+            document.getElementById('modal-backdrop').classList.add('open');
+            document.getElementById('tx-modal').classList.add('open');
+            
+            setTimeout(() => document.getElementById('tx-amount').focus(), 300);
+        }
+        
+        window.closeModal = () => {
+            document.getElementById('modal-backdrop').classList.remove('open');
+            document.getElementById('tx-modal').classList.remove('open');
+            document.getElementById('tx-amount').blur();
+            document.getElementById('tx-note').blur();
+        }
+
+        window.submitTransaction = async () => {
+            if (!currentUser) return;
+
+            const amountVal = document.getElementById('tx-amount').value;
+            const note = document.getElementById('tx-note').value || 'Transfer';
+            const amount = parseFloat(amountVal);
+
+            if (isNaN(amount) || amount <= 0) {
+                const amtInput = document.getElementById('tx-amount');
+                amtInput.classList.add('border-red-500', 'text-red-400');
+                setTimeout(() => amtInput.classList.remove('border-red-500', 'text-red-400'), 1500);
+                return;
+            }
+
+            const friend = USERS[currentUser].friend;
+            const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
+
+            // Crucial Logic for 'Sent' vs 'Received'
+            const isSender = currentTxMode === 'sent';
+            const txSender = isSender ? currentUser : friend;
+            const txReceiver = isSender ? friend : currentUser;
+
+            try {
+                if (db) {
+                    const txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions');
+                    await addDoc(txCollection, {
+                        sender: txSender,
+                        receiver: txReceiver,
+                        amount: amount,
+                        note: note,
+                        status: 'pending',
+                        timestamp: Date.now(),
+                        createdBy: currentUser // Tracks who made the request
+                    });
+                } else {
+                    // Standalone Mode: Fake the pending transaction locally so UI still updates
+                    allTransactions.push({
+                        id: 'local_' + Date.now(),
+                        sender: txSender,
+                        receiver: txReceiver,
+                        amount: amount,
+                        note: note,
+                        status: 'pending',
+                        timestamp: Date.now(),
+                        createdBy: currentUser
+                    });
+                    renderDashboard();
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error adding transaction:", error);
+            }
+        };
+
+        window.handleApproval = async (txId, newStatus) => {
+            try { 
+                if (db) {
+                    const txRef = doc(db, 'artifacts', appId, 'public', 'data', 'vibha_transactions', txId);
+                    await updateDoc(txRef, { status: newStatus }); 
+                } else {
+                    // Standalone Mode update
+                    const tx = allTransactions.find(t => t.id === txId);
+                    if (tx) tx.status = newStatus;
+                    renderDashboard();
+                }
+                
+                // Background Sync to Google Sheets via Apps Script
+                if (newStatus === 'approved' && APPS_SCRIPT_URL) {
+                    const tx = allTransactions.find(t => t.id === txId);
+                    if (tx) {
+                        fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                date: new Date().toLocaleDateString('en-IN'),
+                                time: new Date().toLocaleTimeString('en-IN'),
+                                sender: tx.sender,
+                                receiver: tx.receiver,
+                                amount: tx.amount,
+                                note: tx.note
+                            })
+                        }).then(() => {
+                            // After approving and writing to sheet, fetch updated statements
+                            setTimeout(fetchSheetData, 2000);
+                        }).catch(e => console.log('Sheet sync skipped', e));
+                    }
+                }
+            } 
+            catch (error) { console.error("Error updating:", error); }
+        };
+        
+        window.openStatements = () => {
+            document.getElementById('modal-backdrop').classList.add('open');
+            document.getElementById('statements-modal').classList.add('open');
+            renderStatements();
+        };
+
+        window.closeStatements = () => {
+            document.getElementById('modal-backdrop').classList.remove('open');
+            document.getElementById('statements-modal').classList.remove('open');
+        };
+        
+        window.renderStatements = () => {
+            const list = document.getElementById('statements-list');
+            
+            if (!APPS_SCRIPT_URL) {
+                list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm font-medium">Link your Google Apps Script URL in the code to read statements.</div>`;
+                return;
+            }
+            if (!isSheetLoaded) {
+                list.innerHTML = `<div class="text-center py-10 text-brand-400 text-sm font-medium animate-pulse">Loading securely from Google Sheets...</div>`;
+                return;
+            }
+            if (sheetTransactions.length === 0) {
+                list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm font-medium">No statements found in the sheet yet.</div>`;
+                return;
+            }
+
+            // Reverse to show latest first
+            const reversed = [...sheetTransactions].reverse();
+            
+            list.innerHTML = reversed.map(t => {
+                const isSender = (t.Sender || t.sender) === currentUser;
+                const date = t.Date || t.date;
+                const time = t.Time || t.time;
+                const amount = t.Amount || t.amount;
+                const note = t.Note || t.note;
+                const otherPerson = isSender ? (t.Receiver || t.receiver) : (t.Sender || t.sender);
+                
+                const color = isSender ? 'text-emerald-400' : 'text-brand-400';
+                const sign = isSender ? '-' : '+';
+                
+                return `
+                    <div class="glass rounded-xl p-4 border border-slate-700/50 flex justify-between items-center mb-3">
+                        <div>
+                            <p class="text-sm font-bold text-slate-200">${isSender ? 'Sent to' : 'Received from'} ${otherPerson}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${date} • ${time}</p>
+                            <p class="text-[12px] text-slate-300 mt-1.5 font-medium bg-slate-800/80 inline-block px-2.5 py-1 rounded-md border border-white/5">${note}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-xl ${color}">${sign}₹${amount}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.onload = () => initAuth();
+    </script>
+
+    <!-- 
+    ========================================================
+    UPDATED GOOGLE APPS SCRIPT BACKEND INSTRUCTIONS (Code.gs)
+    ========================================================
+    1. Open your Google Sheet.
+    2. Add exact headers in Row 1: Date | Time | Sender | Receiver | Amount | Note
+    3. Go to Extensions > Apps Script.
+    4. Delete all existing code and paste the code below (it now includes doGet to READ data):
+
+    function doGet(e) {
+      try {
+        var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+        var data = sheet.getDataRange().getValues();
+        if (data.length <= 1) return ContentService.createTextOutput("[]").setMimeType(ContentService.MimeType.JSON);
+        
+        var headers = data[0];
+        var result = [];
+        for (var i = 1; i < data.length; i++) {
+          var obj = {};
+          for (var j = 0; j < headers.length; j++) {
+            obj[headers[j]] = data[i][j];
+          }
+          result.push(obj);
+        }
+        return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+      } catch(error) {
+        return ContentService.createTextOutput(JSON.stringify({error: error.message})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    function doPost(e) {
+      try {
+        var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+        var data = JSON.parse(e.postData.contents);
+        sheet.appendRow([data.date, data.time, data.sender, data.receiver, data.amount, data.note]);
+        return ContentService.createTextOutput("Success");
+      } catch(error) {
+        return ContentService.createTextOutput("Error");
+      }
+    }
+
+    5. Click "Deploy" > "New deployment".
+    6. Select type: "Web App".
+    7. Execute as: "Me", Who has access: "Anyone".
+    8. Click Deploy, copy the new "Web App URL".
+    9. Paste the URL into the 'APPS_SCRIPT_URL' variable in the Javascript code above.
+    ========================================================
+    -->
+</body>
+</html>
