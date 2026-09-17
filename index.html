@@ -5,17 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Money Ledger</title>
     
-    <!-- 
-    ========================================
-    FAVICON SLOTS (Uncomment and replace URLs when ready)
-    ========================================
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    -->
-
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/x-icon" href="logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="logo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,7 +30,8 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #0f172a; 
+            background-color: #020617; /* Darker, richer background */
+            background-image: radial-gradient(circle at top center, #0f172a 0%, #020617 100%);
             color: #f8fafc;
             display: flex;
             justify-content: center;
@@ -48,68 +42,91 @@
             overflow: hidden; /* Prevent body scrolling */
         }
         
-        /* Responsive App Container - Now fully spans the screen */
+        /* Responsive App Container */
         .app-container {
             width: 100%;
             height: 100vh;
             height: 100dvh;
             position: relative;
-            background-color: #0f172a;
             overflow-y: auto;
             overflow-x: hidden;
+            perspective: 1000px;
         }
 
-        /* Glassmorphism Classes */
         .glass { 
-            background: rgba(30, 41, 59, 0.45); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-        }
-        .glass-heavy {
-            background: rgba(15, 23, 42, 0.75); 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
             backdrop-filter: blur(24px); 
             -webkit-backdrop-filter: blur(24px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .glass:hover {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
         }
 
-        /* Ambient Background Orbs */
-        .orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: 0; opacity: 0.4; }
-        .orb-1 { top: -10%; left: -20%; width: 300px; height: 300px; background: #3b82f6; animation: float 10s infinite ease-in-out alternate; }
-        .orb-2 { bottom: 10%; right: -20%; width: 250px; height: 250px; background: #10b981; animation: float 12s infinite ease-in-out alternate-reverse; }
-
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(30px, 50px) scale(1.1); }
+        .glass-heavy {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.65) 0%, rgba(15, 23, 42, 0.85) 100%);
+            backdrop-filter: blur(40px); 
+            -webkit-backdrop-filter: blur(40px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.6);
         }
 
-        /* UI Animations */
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        /* Premium iOS-style Glass Button Base */
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-btn::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            opacity: 0.5;
+        }
+        .glass-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+        }
+
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); z-index: 0; opacity: 0.5; mix-blend-mode: screen; pointer-events: none; }
+        .orb-1 { top: -10%; left: -10%; width: 350px; height: 350px; background: #3b82f6; animation: orbFloat1 15s infinite ease-in-out alternate; }
+        .orb-2 { bottom: 20%; right: -10%; width: 300px; height: 300px; background: #10b981; animation: orbFloat2 18s infinite ease-in-out alternate-reverse; }
+        .orb-3 { top: 40%; left: 50%; width: 250px; height: 250px; background: #8b5cf6; animation: orbFloat3 12s infinite ease-in-out alternate; opacity: 0.3; }
+
+        @keyframes orbFloat1 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(50px, 80px) scale(1.2); } }
+        @keyframes orbFloat2 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-60px, -40px) scale(1.1); } }
+        @keyframes orbFloat3 { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(20px, 50px) scale(1.3); } }
+
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         
-        /* Bottom Sheet / Modal */
         .bottom-sheet {
             position: absolute;
             bottom: 0; left: 0; right: 0;
             transform: translateY(100%);
-            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s;
             z-index: 50;
-            border-top-left-radius: 28px;
-            border-top-right-radius: 28px;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
+            border-top-left-radius: 36px;
+            border-top-right-radius: 36px;
+            padding-bottom: env(safe-area-inset-bottom, 24px);
         }
         .bottom-sheet.open { transform: translateY(0); }
         
         @media (min-width: 768px) {
             .bottom-sheet {
                 top: 50%; left: 50%; bottom: auto; right: auto;
-                width: 400px;
-                transform: translate(-50%, -40%) scale(0.95);
+                width: 440px;
+                transform: translate(-50%, -30%) scale(0.9);
                 opacity: 0;
-                border-radius: 28px;
-                padding-bottom: 24px;
+                border-radius: 32px;
+                padding-bottom: 32px;
                 pointer-events: none;
-                transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+                transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
             }
             .bottom-sheet.open {
                 transform: translate(-50%, -50%) scale(1);
@@ -120,10 +137,11 @@
         
         .modal-backdrop {
             position: absolute; inset: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease;
             z-index: 40;
         }
         .modal-backdrop.open { opacity: 1; pointer-events: all; }
@@ -131,8 +149,34 @@
         /* Hide scrollbar */
         ::-webkit-scrollbar { width: 0px; }
         
-        /* Content z-index fix to sit above orbs */
+        /* Content z-index fix */
         .content-layer { position: relative; z-index: 10; }
+
+        /* Premium Input & Button Active states */
+        input { transition: transform 0.3s ease, border-color 0.3s ease; }
+        input:focus { transform: scale(1.02); }
+        button { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        button:active { transform: scale(0.96) !important; filter: brightness(0.9); }
+
+        /* Premium Shine Animation */
+        /* Premium Shine Animation (More Realistic Timing) */
+        @keyframes shine-sweep {
+            0%, 75% { transform: translateX(-200%) skewX(-30deg); }
+            95%, 100% { transform: translateX(200%) skewX(-30deg); }
+        }
+        .shine-layer {
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            width: 150%;
+            transform: translateX(-200%) skewX(-30deg);
+            animation: shine-sweep 8s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .delay-shine { animation-delay: 4s; }
+        
+        .btn-content { position: relative; z-index: 10; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
@@ -141,35 +185,59 @@
         <!-- Ambient Orbs -->
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
 
         <div id="loginScreen" class="content-layer flex-1 flex flex-col justify-center p-6 md:p-12 fade-in max-w-md mx-auto w-full">
-            <div class="text-center mb-10">
-                <div class="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/30 transform rotate-3">
-                    <svg class="w-10 h-10 text-white -rotate-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            <div class="text-center mb-8 transition-all duration-500" id="login-header">
+                <!-- Adjust w-32 and h-32 below to change the logo size (e.g., w-40 h-40 for bigger, or w-24 h-24 for smaller) -->
+                <div class="mx-auto mb-6 flex items-center justify-center transition-transform hover:scale-105" id="login-logo-box">
+                    <img src="logo.png" alt="Money Ledger Logo" class="w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.3)]" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTkgMTJsMiAyIDQtNG01LjYxOC00LjAxNkExMS45NTUgMTEuOTU1IDAgMDExMiAyLjk0NGExMS45NTUgMTEuOTU1IDAgMDEtOC42MTggMy4wNEExMi4wMiAxMi4wMiAwIDAwMyA5YzAgNS41OTEgMy44MjQgMTAuMjkgOSAxMS42MjIgNS4xNzYtMS4zMzIgOS02LjAzIDktMTEuNjIyIDAtMS4wNDItLjEzMy0yLjA1Mi0uMzgyLTMuMDE2eiIvPjwvc3ZnPg=='" />
                 </div>
                 <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2">Money Ledger</h1>
                 <p class="text-slate-400 text-sm font-medium">Secure syncing for Vivek & Bharath</p>
             </div>
 
-            <div class="glass rounded-3xl p-6 shadow-2xl">
-                <label class="block text-sm font-semibold text-slate-300 mb-3 ml-1">Who are you?</label>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <button onclick="selectUser('Vivek')" id="btn-Vivek" class="py-4 px-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold hover:bg-slate-700/50 transition-all flex items-center justify-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 hidden shadow-[0_0_8px_#34d399]" id="dot-Vivek"></div> Vivek
-                    </button>
-                    <button onclick="selectUser('Bharath')" id="btn-Bharath" class="py-4 px-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold hover:bg-slate-700/50 transition-all flex items-center justify-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 hidden shadow-[0_0_8px_#34d399]" id="dot-Bharath"></div> Bharath
-                    </button>
+            <div class="glass rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all duration-500" id="login-card-container">
+                
+                <!-- User Selection State -->
+                <div id="user-selection-area" class="transition-all duration-300 transform scale-100 opacity-100">
+                    <label class="block text-sm font-semibold text-slate-300 mb-5 text-center tracking-wide uppercase">Who are you?</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="selectUser('Vivek')" class="glass-btn p-5 rounded-2xl text-slate-200 font-bold flex flex-col items-center justify-center gap-3 group active:scale-95 transition-transform">
+                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br from-slate-600 to-slate-800 group-hover:from-brand-400 group-hover:to-brand-600 transition-all shadow-lg">
+                                <img src="vivek.jpeg" alt="Vivek" class="w-full h-full rounded-full object-cover border-[3px] border-slate-900" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTE2IDdhNCA0IDAgMTEtOCAwaDQgNCAwIDAxOCAweiIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTEyIDE0YTcgNyAwIDAwLTcgN2gxNGE3IDcgMCAwMC03LTd6Ii8+PC9zdmc+'"/>
+                            </div>
+                            <span class="tracking-wide">Vivek</span>
+                        </button>
+                        <button onclick="selectUser('Bharath')" class="glass-btn p-5 rounded-2xl text-slate-200 font-bold flex flex-col items-center justify-center gap-3 group active:scale-95 transition-transform">
+                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br from-slate-600 to-slate-800 group-hover:from-brand-400 group-hover:to-brand-600 transition-all shadow-lg">
+                                <img src="bharath.png" alt="Bharath" class="w-full h-full rounded-full object-cover border-[3px] border-slate-900" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTE2IDdhNCA0IDAgMTEtOCAwaDQgNCAwIDAxOCAweiIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTEyIDE0YTcgNyAwIDAwLTcgN2gxNGE3IDcgMCAwMC03LTd6Ii8+PC9zdmc+'"/>
+                            </div>
+                            <span class="tracking-wide">Bharath</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <div id="password-section" class="hidden fade-in space-y-4">
-                    <div>
-                        <input type="password" id="password" inputmode="numeric" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl px-5 py-4 text-white text-center tracking-widest text-xl focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-600 placeholder:tracking-normal" placeholder="Passcode">
-                    </div>
-                    <button onclick="handleLogin()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-brand-500/25 active:scale-95">
-                        Unlock Ledger
+                <!-- Password State (True Lock Screen) -->
+                <div id="password-section" class="hidden w-full flex-col items-center justify-center text-center opacity-0 transform scale-95 transition-all duration-300">
+                    <button onclick="cancelLogin()" class="absolute -top-2 -left-2 p-3 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all active:scale-90 z-20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <p id="login-error" class="text-red-400 text-sm text-center font-medium hidden">Incorrect passcode.</p>
+                    
+                    <div class="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-br from-brand-400 to-brand-600 mb-3 shadow-[0_0_35px_rgba(96,165,250,0.4)]">
+                        <img id="login-active-img" src="" class="w-full h-full rounded-full object-cover border-[3px] border-slate-900" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTE2IDdhNCA0IDAgMTEtOCAwaDQgNCAwIDAxOCAweiIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTEyIDE0YTcgNyAwIDAwLTcgN2gxNGE3IDcgMCAwMC03LTd6Ii8+PC9zdmc+'" />
+                    </div>
+                    
+                    <h2 class="text-2xl font-black text-white mb-6 w-full text-center" id="login-active-name">Welcome</h2>
+                    
+                    <div class="w-full space-y-4 relative mx-auto">
+                        <input type="password" id="password" inputmode="numeric" class="w-full bg-slate-900/60 border border-slate-500/30 rounded-2xl px-5 py-4 text-white text-center tracking-widest text-2xl font-bold focus:outline-none focus:border-brand-400 focus:bg-slate-900/80 transition-all placeholder:text-slate-600 placeholder:tracking-normal placeholder:font-normal placeholder:text-base backdrop-blur-md shadow-inner" placeholder="Enter Passcode">
+                        
+                        <button onclick="handleLogin()" class="glass-btn w-full relative overflow-hidden bg-gradient-to-br from-brand-500/40 to-brand-700/20 text-white font-bold py-4 rounded-2xl transition-all shadow-[0_8px_32px_rgba(59,130,246,0.25)] active:scale-95">
+                            <span class="relative z-10">Unlock Ledger</span>
+                        </button>
+                        <p id="login-error" class="text-red-400 text-sm text-center font-medium hidden absolute -bottom-7 left-0 right-0">Incorrect passcode.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,16 +248,16 @@
             <header class="flex justify-between items-center p-6 pt-8 pb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-11 h-11 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-lg border border-white/10 overflow-hidden shrink-0" id="user-avatar">V</div>
-                    <div>
-                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Welcome back</p>
-                        <h2 class="text-lg font-extrabold text-white leading-tight" id="user-name">Vivek</h2>
+                    <div class="inline-flex items-center justify-center gap-2 bg-slate-900/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/50">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <p id="balance-status" class="text-xs font-bold text-slate-300 tracking-wide">Calculating...</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="handleLogout()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    </button>
-                </div>
+
+                <!-- Log Out Button -->
+                <button onclick="handleLogout()" class="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all active:scale-90 shadow-lg backdrop-blur-md">
+                    <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
             </header>
 
             <!-- Scrollable Content -->
@@ -207,7 +275,7 @@
 
                     <button onclick="openStatements()" class="mt-5 w-full py-3 rounded-xl border border-slate-600/50 bg-slate-800/50 text-slate-300 font-bold text-sm hover:bg-slate-700/50 transition-all active:scale-95 flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        View Full Statements (Sheets)
+                        View Full Statements
                     </button>
                 </div>
 
@@ -237,13 +305,21 @@
             <!-- Bottom Action Bar -->
             <div class="absolute bottom-0 left-0 right-0 w-full p-4 glass-heavy z-20 rounded-t-[32px] md:rounded-none md:border-t md:border-white/10">
                 <div class="flex gap-4 max-w-3xl mx-auto">
-                    <button onclick="openModal('sent')" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] flex flex-col items-center justify-center gap-1 active:scale-95">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                        <span class="text-[11px] uppercase tracking-wider">I Sent</span>
+                    <button onclick="openModal('sent')" class="flex-1 relative overflow-hidden bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 backdrop-blur-xl border border-emerald-500/30 hover:border-emerald-400/60 hover:bg-emerald-500/30 font-bold py-4 rounded-2xl transition-all duration-300 shadow-[0_8px_32px_rgba(16,185,129,0.15)] active:scale-95 group">
+                        <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="shine-layer"></div>
+                        <div class="btn-content">
+                            <svg class="w-6 h-6 text-emerald-400 group-active:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                            <span class="text-[11px] uppercase tracking-wider text-emerald-100 transition-colors">I Sent</span>
+                        </div>
                     </button>
-                    <button onclick="openModal('received')" class="flex-1 bg-brand-500 hover:bg-brand-400 text-white font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] flex flex-col items-center justify-center gap-1 active:scale-95">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                        <span class="text-[11px] uppercase tracking-wider">I Received</span>
+                    <button onclick="openModal('received')" class="flex-1 relative overflow-hidden bg-gradient-to-br from-brand-500/20 to-brand-900/10 backdrop-blur-xl border border-brand-500/30 hover:border-brand-400/60 hover:bg-brand-500/30 font-bold py-4 rounded-2xl transition-all duration-300 shadow-[0_8px_32px_rgba(59,130,246,0.15)] active:scale-95 group">
+                        <div class="absolute inset-0 bg-gradient-to-t from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="shine-layer delay-shine"></div>
+                        <div class="btn-content">
+                            <svg class="w-6 h-6 text-brand-400 group-active:translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            <span class="text-[11px] uppercase tracking-wider text-brand-100 transition-colors">I Received</span>
+                        </div>
                     </button>
                 </div>
             </div>
@@ -266,12 +342,12 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Amount</label>
                     <div class="relative">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-2xl text-slate-400 font-medium">₹</span>
-                        <input type="number" id="tx-amount" inputmode="decimal" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl pl-12 pr-5 py-4 text-white text-2xl font-bold focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/50 transition-all placeholder:text-slate-600" placeholder="0">
+                        <input type="number" id="tx-amount" inputmode="decimal" class="w-full bg-slate-900/60 backdrop-blur-md border border-slate-500/30 rounded-2xl pl-12 pr-5 py-4 text-white text-2xl font-bold focus:outline-none focus:border-brand-400 focus:bg-slate-900/80 transition-all placeholder:text-slate-600 shadow-inner" placeholder="0">
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Note / Description</label>
-                    <input type="text" id="tx-note" class="w-full bg-slate-900/80 border border-slate-600 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/50 transition-all placeholder:text-slate-600" placeholder="e.g. Movie tickets, Dinner...">
+                    <input type="text" id="tx-note" class="w-full bg-slate-900/60 backdrop-blur-md border border-slate-500/30 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-brand-400 focus:bg-slate-900/80 transition-all placeholder:text-slate-600 shadow-inner" placeholder="e.g. Movie tickets, Dinner...">
                 </div>
             </div>
             <div class="mt-8 mb-4">
@@ -362,18 +438,62 @@
         window.selectUser = (name) => {
             selectedLoginUser = name;
             
-            document.getElementById('btn-Vivek').classList.remove('border-brand-500', 'bg-brand-900/50');
-            document.getElementById('btn-Bharath').classList.remove('border-brand-500', 'bg-brand-900/50');
-            document.getElementById('dot-Vivek').classList.add('hidden');
-            document.getElementById('dot-Bharath').classList.add('hidden');
-            
-            document.getElementById(`btn-${name}`).classList.add('border-brand-500', 'bg-brand-900/50');
-            document.getElementById(`dot-${name}`).classList.remove('hidden');
-            
+            const selArea = document.getElementById('user-selection-area');
             const pwdSection = document.getElementById('password-section');
-            pwdSection.classList.remove('hidden');
-            document.getElementById('password').focus();
-            document.getElementById('login-error').classList.add('hidden');
+            const loginHeader = document.getElementById('login-header');
+            
+            // 1. Hide the selection menu & logo smoothly
+            selArea.classList.replace('scale-100', 'scale-95');
+            selArea.classList.replace('opacity-100', 'opacity-0');
+            loginHeader.classList.add('opacity-0', '-translate-y-4');
+            
+            setTimeout(() => {
+                // 2. Remove them from flow
+                selArea.classList.add('hidden');
+                loginHeader.classList.add('hidden');
+                
+                // 3. Configure the active user screen
+                document.getElementById('login-active-img').src = name === 'Vivek' ? 'vivek.jpeg' : 'bharath.png';
+                document.getElementById('login-active-name').innerText = name;
+                
+                // 4. Reveal Password screen smoothly
+                pwdSection.classList.remove('hidden');
+                void pwdSection.offsetWidth; // Force reflow to trigger CSS animation
+                
+                pwdSection.classList.replace('scale-95', 'scale-100');
+                pwdSection.classList.replace('opacity-0', 'opacity-100');
+                
+                document.getElementById('password').focus();
+                document.getElementById('login-error').classList.add('hidden');
+            }, 300); // Wait for fade out to complete
+        };
+
+        window.cancelLogin = () => {
+            selectedLoginUser = null;
+            const selArea = document.getElementById('user-selection-area');
+            const pwdSection = document.getElementById('password-section');
+            const loginHeader = document.getElementById('login-header');
+            
+            // 1. Hide password screen smoothly
+            pwdSection.classList.replace('scale-100', 'scale-95');
+            pwdSection.classList.replace('opacity-100', 'opacity-0');
+            
+            setTimeout(() => {
+                // 2. Remove from flow and clear inputs
+                pwdSection.classList.add('hidden');
+                document.getElementById('password').value = '';
+                document.getElementById('login-error').classList.add('hidden');
+                
+                // 3. Bring back original UI
+                selArea.classList.remove('hidden');
+                loginHeader.classList.remove('hidden');
+                
+                void selArea.offsetWidth; // Force reflow
+                
+                selArea.classList.replace('scale-95', 'scale-100');
+                selArea.classList.replace('opacity-0', 'opacity-100');
+                loginHeader.classList.remove('opacity-0', '-translate-y-4');
+            }, 300);
         };
 
         window.handleLogin = () => {
@@ -395,14 +515,27 @@
             
             document.getElementById('appScreen').classList.add('hidden');
             document.getElementById('appScreen').classList.remove('flex');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('password-section').classList.add('hidden');
             
+            // Full UI reset to User Selection State
+            document.getElementById('loginScreen').classList.remove('hidden');
+            
+            const selArea = document.getElementById('user-selection-area');
+            const pwdSection = document.getElementById('password-section');
+            const loginHeader = document.getElementById('login-header');
+            
+            pwdSection.classList.add('hidden');
+            pwdSection.classList.replace('opacity-100', 'opacity-0');
+            pwdSection.classList.replace('scale-100', 'scale-95');
+            
+            selArea.classList.remove('hidden');
+            selArea.classList.replace('opacity-0', 'opacity-100');
+            selArea.classList.replace('scale-95', 'scale-100');
+            
+            loginHeader.classList.remove('hidden', 'opacity-0', '-translate-y-4');
+            
+            document.getElementById('password').value = '';
+            document.getElementById('login-error').classList.add('hidden');
             selectedLoginUser = null;
-            document.getElementById('btn-Vivek').classList.remove('border-brand-500', 'bg-brand-900/50');
-            document.getElementById('btn-Bharath').classList.remove('border-brand-500', 'bg-brand-900/50');
-            document.getElementById('dot-Vivek').classList.add('hidden');
-            document.getElementById('dot-Bharath').classList.add('hidden');
         };
 
         function showAppScreen() {
@@ -413,26 +546,20 @@
             document.getElementById('appScreen').classList.remove('hidden');
             document.getElementById('appScreen').classList.add('flex');
             
-            document.getElementById('user-name').innerText = currentUser;
+            const userNameEl = document.getElementById('user-name');
+            if (userNameEl) userNameEl.innerText = currentUser;
+            
             document.getElementById('user-avatar').innerHTML = currentUser.charAt(0);
             
-            /*
-            ========================================================================
-            PROFILE PHOTO LOGIC (Vivek & Bharath)
-            To use real profile photos instead of the first letter of your name:
-            1. Delete the "/*" on the line below and the ending comment at the bottom.
-            2. Paste your image links inside the quotes for Vivek and Bharath.
-            ========================================================================
-            */
-            /*
+            // Apply unique avatars based on user
             const profilePhotos = {
-                'Vivek': 'https://example.com/vivek-photo.jpg',     // <--- PASTE VIVEK'S PHOTO URL HERE
-                'Bharath': 'https://example.com/bharath-photo.jpg'  // <--- PASTE BHARATH'S PHOTO URL HERE
+                'Vivek': 'vivek.jpeg',
+                'Bharath': 'bharath.png'
             };
+            
             if (profilePhotos[currentUser]) {
-                document.getElementById('user-avatar').innerHTML = `<img src="${profilePhotos[currentUser]}" class="w-full h-full rounded-full object-cover" alt="Profile">`;
+                document.getElementById('user-avatar').innerHTML = `<img src="${profilePhotos[currentUser]}" class="w-full h-full rounded-full object-cover shadow-inner" alt="Profile">`;
             }
-            */
             
             fetchSheetData(); // Fetch sheets data on load
             setInterval(fetchSheetData, 5000); // Polling every 5 seconds for real-time syncing!
@@ -537,8 +664,8 @@
                                 </p>
                             </div>
                             <div class="flex gap-3">
-                                <button onclick="handleApproval('${tx.id}', 'rejected')" class="flex-1 py-3 rounded-xl bg-slate-800/80 text-red-400 text-sm font-bold active:scale-95 transition-transform">Reject</button>
-                                <button onclick="handleApproval('${tx.id}', 'approved')" class="flex-1 py-3 rounded-xl bg-emerald-500 text-slate-950 text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] active:scale-95 transition-transform">Approve</button>
+                                <button onclick="handleApproval('${tx.id}', 'rejected')" class="flex-1 py-3 rounded-xl glass-btn bg-red-500/10 border-red-500/30 text-red-400 text-sm font-bold active:scale-95 transition-transform">Reject</button>
+                                <button onclick="handleApproval('${tx.id}', 'approved')" class="flex-1 py-3 rounded-xl glass-btn bg-emerald-500/20 border-emerald-500/40 text-emerald-300 text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] active:scale-95 transition-transform">Approve</button>
                             </div>
                         </div>
                     `;
@@ -635,9 +762,11 @@
             submitBtn.innerText = mode === 'sent' ? 'Send Approval Request' : 'Request Verification';
             
             if (mode === 'sent') {
-                submitBtn.className = "w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all";
+                submitBtn.className = "w-full py-4 rounded-2xl relative overflow-hidden bg-gradient-to-br from-emerald-500/40 to-emerald-700/20 backdrop-blur-xl border border-emerald-400/40 text-white font-bold text-lg shadow-[0_8px_32px_rgba(16,185,129,0.25)] active:scale-95 transition-all";
+                submitBtn.innerHTML = '<div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"></div><span class="relative z-10">' + submitBtn.innerText + '</span>';
             } else {
-                submitBtn.className = "w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)] active:scale-95 transition-all";
+                submitBtn.className = "w-full py-4 rounded-2xl relative overflow-hidden bg-gradient-to-br from-brand-500/40 to-brand-700/20 backdrop-blur-xl border border-brand-400/40 text-white font-bold text-lg shadow-[0_8px_32px_rgba(37,99,235,0.25)] active:scale-95 transition-all";
+                submitBtn.innerHTML = '<div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"></div><span class="relative z-10">' + submitBtn.innerText + '</span>';
             }
 
             document.getElementById('tx-amount').value = '';
