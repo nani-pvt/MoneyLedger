@@ -211,7 +211,7 @@
                         </button>
                         <button onclick="selectUser('Bharath')" class="glass-btn p-5 rounded-2xl text-slate-200 font-bold flex flex-col items-center justify-center gap-3 group active:scale-95 transition-transform">
                             <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br from-slate-600 to-slate-800 group-hover:from-brand-400 group-hover:to-brand-600 transition-all shadow-lg">
-                                <img src="bharath.png" alt="Bharath" class="w-full h-full rounded-full object-cover border-[3px] border-slate-900" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTE2IDdhNCA0IDAgMTEtOCAwaDQgNCAwIDAxOCAweiIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTEyIDE0YTcgNyAwIDAwLTcgN2gxNGE3IDcgMCAwMC03LTd6Ii8+PC9zdmc+'"/>
+                                <img src="bharath.jpg" alt="Bharath" class="w-full h-full rounded-full object-cover border-[3px] border-slate-900" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTE2IDdhNCA0IDAgMTEtOCAwaDQgNCAwIDAxOCAweiIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTEyIDE0YTcgNyAwIDAwLTcgN2gxNGE3IDcgMCAwMC03LTd6Ii8+PC9zdmc+'"/>
                             </div>
                             <span class="tracking-wide">Bharath</span>
                         </button>
@@ -453,7 +453,7 @@
                 loginHeader.classList.add('hidden');
                 
                 // 3. Configure the active user screen
-                document.getElementById('login-active-img').src = name === 'Vivek' ? 'vivek___.jpg' : 'bharath.png';
+                document.getElementById('login-active-img').src = name === 'Vivek' ? 'vivek___.jpg' : 'bharath.jpg';
                 document.getElementById('login-active-name').innerText = name;
                 
                 // 4. Reveal Password screen smoothly
@@ -554,7 +554,7 @@
             // Apply unique avatars based on user
             const profilePhotos = {
                 'Vivek': 'vivek___.jpg',
-                'Bharath': 'bharath.png'
+                'Bharath': 'bharath.jpg'
             };
             
             if (profilePhotos[currentUser]) {
